@@ -1,35 +1,46 @@
-name: RoadVerse Android APK
+name: Compilar RoadVerse 1.6 APK
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - 'RoadVerse_Frontier_1_6_Cartografia_Beta.zip'
+      - '.github/workflows/android-apk.yml'
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  android:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Obtener repositorio
         uses: actions/checkout@v4
-      - name: Java 17
+      - name: JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - name: Android SDK
+      - name: SDK Android
         uses: android-actions/setup-android@v3
       - name: Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Android SDK platform
+      - name: Instalar plataforma Android
         run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
-      - name: Build debug APK
+      - name: Descomprimir proyecto original 1.6
+        run: |
+          test -f RoadVerse_Frontier_1_6_Cartografia_Beta.zip || { echo "::error::Falta RoadVerse_Frontier_1_6_Cartografia_Beta.zip en la raiz del repositorio"; exit 1; }
+          mkdir -p extracted
+          unzip -q RoadVerse_Frontier_1_6_Cartografia_Beta.zip -d extracted
+          test -f extracted/RoadVerse_Frontier_1_6_Cartografia/settings.gradle.kts
+      - name: Compilar APK debug
+        working-directory: extracted/RoadVerse_Frontier_1_6_Cartografia
         run: gradle --no-daemon --stacktrace :app:assembleDebug
-      - name: Upload APK
+      - name: Publicar APK para descargar
         uses: actions/upload-artifact@v4
         with:
-          name: RoadVerse-1.9.6-APK
-          path: app/build/outputs/apk/debug/*.apk
+          name: RoadVerse-1.6-debug-apk
+          path: extracted/RoadVerse_Frontier_1_6_Cartografia/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
